@@ -44,14 +44,27 @@ AND elevation > 10000
 ORDER BY name, county, latitude,longitude,elevation
 ;
 
-SELECT * FROM (SELECT name, county, latitude,longitude,elevation
+SELECT * FROM 
+(SELECT name, county, latitude,longitude,elevation
 FROM populated_place
-WHERE name = 'Alma') as p
+WHERE name = 'Alma'
+--AND elevation > 10000
+) as p
 FULL OUTER JOIN
 (SELECT name, county, latitude,longitude,elevation
 FROM feature
-WHERE name = 'Alma')as f
-ON p.name = f.name AND p.county=f.county;
+WHERE name = 'Alma'
+AND type = 'ppl'
+--AND elevation > 10000
+)as f
+ON p.name = f.name 
+AND p.county=f.county
+AND (p.latitude <> f.latitude -- Will this still return an entry if there are two with the same lat/long/elev?
+	OR p.longitude <> f.longitude
+	OR p.elevation <> f.elevation
+	)
+AND (p.elevation > 10000
+	OR f.elevation > 10000)
 --See how to select correct rows from this
 
 -- Q4 returns (state_name,county)
