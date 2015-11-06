@@ -62,6 +62,7 @@ ORDER BY state.name, county
 ;
 
 -- Q5 returns (state_name,county,cell_name,population,county_population,state_population)
+
 --Write a query returning the scheme (state name,county,cell name,population,county population,
 --state population), that lists each cell name found in populated place, the total population
 --recorded for all records of that cell, together with the population of the county and the
@@ -69,10 +70,36 @@ ORDER BY state.name, county
 --The query result must be ordered by the state name, county and cell name. The query result
 --should also exclude listing cells for which there is no information about the population, and
 --the list should be limited to those states that have state code between 1 and 9.
-
+SELECT 
+	state.name AS state_name,
+	county, cell_name, 
+	SUM(population) OVER (PARTITION BY cell_name)AS population,
+	SUM(population) OVER (PARTITION BY county)AS county_population,
+	SUM(population) OVER (PARTITION BY state)AS state_population
+FROM populated_place JOIN state 
+ON state.code = populated_place.state_code
+AND populated_place.state_code BETWEEN 1 AND 9
+AND population IS NOT NULL
+ORDER BY state_name, county, cell_name
 ;
 
 -- Q6 returns (populated_place_name,feature_name,distance,rank)
 
+--Write a query returning the scheme (populated place name,feature name,distance,rank), that
+--lists the features which are of type summit, that are 200 miles or less from entries in populated
+--place with a population of at least one hundred thousand.
+--The results must be returned in order of populated place name and rank, where rank orders
+--the distances of the features from a given populated place name in ascending order. Your
+--query should assume that the earth is a perfect sphere of radius 3959 miles, and round the
+--distance figure to two decimal places
+
+SELECT populated_place.name AS populated_place_name, feature.name AS feature_name, 
+ROUND((3959 * ACOS(COS(RADIANS(feature.latitude)) * COS(RADIANS(populated_place.latitude)) * COS( RADIANS(populated_place.longitude) - RADIANS(feature.longitude)) + SIN( RADIANS(feature.latitude)) * SIN(RADIANS(populated_place.latitude))))::numeric, 2) AS distance,
+DENSE_RANK() OVER (PARTITION BY populated_place.name ORDER BY ROUND(3959 * ACOS(COS(RADIANS(feature.latitude)) * COS(RADIANS(populated_place.latitude)) * COS( RADIANS(populated_place.longitude) - RADIANS(feature.longitude)) + SIN( RADIANS(feature.latitude)) * SIN(RADIANS(populated_place.latitude))))::numeric ASC) AS rank
+FROM populated_place JOIN feature
+ON feature.type = 'summit'
+AND population >= 100000
+AND 3959 * ACOS(COS(RADIANS(feature.latitude)) * COS(RADIANS(populated_place.latitude)) * COS( RADIANS(populated_place.longitude) - RADIANS(feature.longitude)) + SIN( RADIANS(feature.latitude)) * SIN(RADIANS(populated_place.latitude)))::numeric <= 200
+ORDER BY  populated_place_name, rank
 ;
 
