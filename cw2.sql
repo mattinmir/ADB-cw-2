@@ -1,6 +1,6 @@
 -- Q1 returns (state_name)
 
-SELECT feature.name AS state_name
+SELECT  feature.state_name 
 FROM feature LEFT JOIN state USING(name)
 WHERE code IS NOT NULL
 ;
@@ -72,7 +72,8 @@ ORDER BY state.name, county
 --the list should be limited to those states that have state code between 1 and 9.
 SELECT 
 	state.name AS state_name,
-	county, cell_name, 
+	county, 
+	cell_name, 
 	SUM(population) OVER (PARTITION BY cell_name)AS population,
 	SUM(population) OVER (PARTITION BY county)AS county_population,
 	SUM(population) OVER (PARTITION BY state)AS state_population
