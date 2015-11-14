@@ -12,7 +12,7 @@ FROM state
 ORDER BY state_name
 ;
 
---could be done better as a join??
+
 
 -- Q2 returns (state_name,county,no_ppl,no_stream)
 
@@ -53,6 +53,7 @@ FROM feature JOIN state
 ON UPPER(state.name) = UPPER(feature.state_name)
 AND type = 'ppl'
 AND elevation > 10000 )
+
 ORDER BY state_abbr, name;
 
 -- Q4 returns (state_name,county)
@@ -68,8 +69,6 @@ WHERE county NOT IN (
 					FROM populated_place
 					WHERE population IS NOT NULL
 					)
---GROUP BY county, state.name
---HAVING SUM(CASE WHEN population IS NOT NULL THEN 1 ELSE 0 END) = 0
 ORDER BY state.name, county
 ;
 
@@ -110,12 +109,38 @@ ORDER BY state_name, county, cell_name
 SELECT 
 	populated_place.name AS populated_place_name, 
 	feature.name AS feature_name, 
-	ROUND((3959 * ACOS(COS(RADIANS(feature.latitude)) * COS(RADIANS(populated_place.latitude)) * COS( RADIANS(populated_place.longitude) - RADIANS(feature.longitude)) + SIN( RADIANS(feature.latitude)) * SIN(RADIANS(populated_place.latitude))))::numeric, 2) AS distance,
-	DENSE_RANK() OVER (PARTITION BY populated_place.name ORDER BY ROUND(3959 * ACOS(COS(RADIANS(feature.latitude)) * COS(RADIANS(populated_place.latitude)) * COS( RADIANS(populated_place.longitude) - RADIANS(feature.longitude)) + SIN( RADIANS(feature.latitude)) * SIN(RADIANS(populated_place.latitude))))::numeric ASC) AS rank
+	ROUND(
+		(3959 * ACOS(
+					COS(RADIANS(feature.latitude)) * COS(RADIANS(populated_place.latitude)) 
+					* COS(RADIANS(populated_place.longitude) - RADIANS(feature.longitude)) 
+					+ SIN(RADIANS(feature.latitude)) * SIN(RADIANS(populated_place.latitude))
+					)
+		)::NUMERIC, 2)
+		AS distance,
+	DENSE_RANK() OVER (
+		PARTITION BY populated_place.name ORDER BY 
+			ROUND(
+				(3959 * ACOS(
+							COS(RADIANS(feature.latitude)) * COS(RADIANS(populated_place.latitude)) 
+							* COS( RADIANS(populated_place.longitude) - RADIANS(feature.longitude)) 
+							+ SIN( RADIANS(feature.latitude)) * SIN(RADIANS(populated_place.latitude)))
+				)::NUMERIC, 2) ASC) 
+				AS rank
 FROM populated_place JOIN feature
 ON feature.type = 'summit'
 AND population >= 100000
-AND 3959 * ACOS(COS(RADIANS(feature.latitude)) * COS(RADIANS(populated_place.latitude)) * COS( RADIANS(populated_place.longitude) - RADIANS(feature.longitude)) + SIN( RADIANS(feature.latitude)) * SIN(RADIANS(populated_place.latitude)))::numeric <= 200
-ORDER BY  populated_place_name, rank
+AND 3959 * ACOS(
+				COS(RADIANS(feature.latitude)) * COS(RADIANS(populated_place.latitude)) 
+				* COS( RADIANS(populated_place.longitude) - RADIANS(feature.longitude)) 
+				+ SIN( RADIANS(feature.latitude)) * SIN(RADIANS(populated_place.latitude)))
+				::NUMERIC 
+	<= 200
+ORDER BY  	populated_place_name, rank
 ;
+
+
+
+
+
+
 
